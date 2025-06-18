@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <title>Welcome to Kudos</title>
     <link href="/css/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen">
@@ -17,11 +22,19 @@
                     </div>
                     <div class="hidden md:flex items-center space-x-4">
                         <a href="#" class="text-gray-700 hover:text-indigo-600">Home</a>
-                        <a href="#" class="text-gray-700 hover:text-indigo-600">Admin Login</a>
+                        <a href="/admin/login" class="text-gray-700 hover:text-indigo-600">Admin Login</a>
                     </div>
                 </div>
             </div>
         </nav>
+
+        <!-- Entity Search Bar -->
+        <div class="bg-white py-4 shadow">
+            <div class="max-w-2xl mx-auto flex flex-col items-center">
+                <input id="entitySearchInput" type="text" placeholder="Search for employees or teams..." class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="off">
+                <div id="entitySearchDropdown" class="w-full bg-white border border-gray-200 rounded mt-1 shadow-lg hidden z-50 absolute"></div>
+            </div>
+        </div>
 
         <!-- Hero Section -->
         <div class="bg-white">
@@ -36,9 +49,9 @@
                     </p>
                     <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
                         <div class="rounded-md shadow">
-                            <a href="#" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10">
-                                Send Kudos
-                            </a>
+                            <button id="openKudosModalBtn" type="button" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10">
+                                Give Kudos
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -47,23 +60,23 @@
 
         <div class="py-12 bg-gray-100">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div class="mb-2 md:mb-0">
+                        <label for="departmentFilter" class="block text-sm font-medium text-gray-700">Filter by Department:</label>
+                        <select id="departmentFilter" class="mt-1 block w-full md:w-64 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">All Departments</option>
+                            <option th:each="dept : ${departments}" th:value="${dept.name}" th:text="${dept.name}"></option>
+                        </select>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
                     <div class="bg-white p-6 rounded-lg shadow-md">
                         <h3 class="text-xl font-bold text-gray-900 mb-4">Top Employees</h3>
-                        <div class="space-y-4">
-                            <div th:each="employee, stat : ${topEmployees}" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-3">
-                                    <span class="text-lg font-semibold text-indigo-600" th:text="${stat.count}">1</span>
-                                    <div>
-                                        <p class="font-medium text-gray-900" th:text="${employee.name}">Employee Name</p>
-                                        <p class="text-sm text-gray-500" th:text="${employee.department}">Department</p>
+                        <div class="space-y-4" id="topEmployeesList">
+                            <!-- Top employees will be rendered here by JS -->
                                     </div>
-                                </div>
-                                <div class="flex items-center">
-                                    <span class="text-lg font-bold text-indigo-600" th:text="${employee.kudosCount}">0</span>
-                                    <span class="ml-1 text-gray-500">kudos</span>
-                                </div>
-                            </div>
+                        <div class="mt-4 flex justify-center">
+                            <a href="/employees/ranking" class="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-medium">See More</a>
                         </div>
                     </div>
 
@@ -84,10 +97,119 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="mt-4 flex justify-center">
+                            <a href="/teams/ranking" class="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-medium">See More</a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Kudos Modal -->
+    <div id="kudosModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+            <button id="closeKudosModalBtn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 text-indigo-600">Give Kudos</h2>
+            <form id="kudosForm">
+                <div class="mb-4">
+                    <label for="senderSelect" class="block font-medium mb-2">From</label>
+                    <select id="senderSelect" name="senderId" class="w-full border rounded px-3 py-2">
+                        <option value="">-- Select Sender --</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block font-medium mb-2">Give Kudos to:</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="recipientType" value="employee" checked class="recipient-type-radio">
+                            <span class="ml-2">Employee</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="recipientType" value="team" class="recipient-type-radio">
+                            <span class="ml-2">Team</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-4" id="employeeDropdown">
+                    <label for="employeeSelect" class="block font-medium mb-2">Select Employee</label>
+                    <select id="employeeSelect" name="employeeId" class="w-full border rounded px-3 py-2">
+                        <option value="">-- Select Employee --</option>
+                        <!-- TODO: Populate with employees -->
+                    </select>
+                </div>
+                <div class="mb-4 hidden" id="teamDropdown">
+                    <label for="teamSelect" class="block font-medium mb-2">Select Team</label>
+                    <select id="teamSelect" name="teamId" class="w-full border rounded px-3 py-2">
+                        <option value="">-- Select Team --</option>
+                        <!-- TODO: Populate with teams -->
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="kudosMessage" class="block font-medium mb-2">Message</label>
+                    <textarea id="kudosMessage" name="message" rows="3" maxlength="1000" class="w-full border rounded px-3 py-2" placeholder="Write a short message..."></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" id="anonymousCheckbox" name="isAnonymous" class="form-checkbox h-5 w-5 text-indigo-600">
+                        <span class="ml-2 text-gray-700">Send anonymously</span>
+                    </label>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancelKudosBtn" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kudos Modal JS -->
+    <script src="/js/kudos-modal.js"></script>
+    <script src="/js/entity-search.js"></script>
+    <script>
+    function renderTopEmployees(employees) {
+        const container = document.getElementById('topEmployeesList');
+        container.innerHTML = '';
+        if (!employees || employees.length === 0) {
+            container.innerHTML = '<div class="text-gray-500 text-center">No employees found.</div>';
+            return;
+        }
+        employees.forEach((employee, idx) => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+            div.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <span class="text-lg font-semibold text-indigo-600">${idx + 1}</span>
+                    <div>
+                        <p class="font-medium text-gray-900">${employee.name}</p>
+                        <p class="text-sm text-gray-500">${employee.department || ''}</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-lg font-bold text-indigo-600">${employee.kudosCount}</span>
+                    <span class="ml-1 text-gray-500">kudos</span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+    async function fetchAndRenderTopEmployees(department) {
+        let url = '/employees/top-by-department';
+        if (department) {
+            url += `?department=${encodeURIComponent(department)}`;
+        }
+        const res = await fetch(url);
+        const employees = await res.json();
+        renderTopEmployees(employees);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const filter = document.getElementById('departmentFilter');
+        fetchAndRenderTopEmployees('');
+        if (!filter) return;
+        filter.addEventListener('change', function() {
+            fetchAndRenderTopEmployees(filter.value);
+        });
+    });
+    </script>
 </body>
 </html> 

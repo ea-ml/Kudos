@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${teamName} + ' - Member Leaderboard'">Team Member Leaderboard</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col items-center justify-center py-8">
+        <div class="w-full max-w-3xl mx-auto flex items-center mb-4">
+            <a href="/teams/ranking" class="flex items-center text-indigo-600 hover:text-indigo-800 font-medium">
+                <span class="material-icons mr-1">arrow_back</span> Back to Team Ranking
+            </a>
+        </div>
+        <h1 class="text-3xl font-bold text-indigo-700 mb-6" th:text="${teamName} + ' - Member Leaderboard'">Team Member Leaderboard</h1>
+        <div th:replace="~{admin/fragments/employee-ranking-table}"></div>
+    </div>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var teamId = [[${teamId}]];
+        /*]]>*/
+    </script>
+    <script src="/js/team-member-leaderboard.js"></script>
+</body>
+</html> 
