@@ -1,26 +1,24 @@
 package com.jjt.kudos.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "employees")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Employee {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+public class Employee extends Recipient {
 
     @Column(name = "employee_id", length = 255, unique = true)
     @NotBlank(message = "Employee ID is required")
@@ -40,10 +38,12 @@ public class Employee {
     private Department department;
 
     @ManyToMany(mappedBy = "members")
+    @JsonIgnore
     private Set<Team> teams = new HashSet<>();
 
-    @Column(name = "kudos_count")
-    private Long kudosCount = 0L;
+    @OneToMany(mappedBy = "sender")
+    @JsonIgnore
+    private Set<Kudos> sentKudos = new HashSet<>();
 
     public Department getDepartment() {
         return this.department;
@@ -54,13 +54,17 @@ public class Employee {
     }
 
     public void addTeam(Team team) {
-        teams.add(team);
-        team.addMember(this);
+        if (team != null && !teams.contains(team)) {
+            teams.add(team);
+            // Let Hibernate manage the bidirectional relationship
+        }
     }
 
     public void removeTeam(Team team) {
-        teams.remove(team);
-        team.removeMember(this);
+        if (team != null && teams.contains(team)) {
+            teams.remove(team);
+            // Let Hibernate manage the bidirectional relationship
+        }
     }
 
 } 
