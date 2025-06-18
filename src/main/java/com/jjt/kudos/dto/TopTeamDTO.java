@@ -4,7 +4,8 @@ import lombok.Data;
 
 @Data
 public class TopTeamDTO {
+    private Long id;
     private String name;
     private Integer memberCount;
-    private Long kudosCount;
+    private Integer kudosCount;
 } 
