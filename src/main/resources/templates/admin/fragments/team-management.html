@@ -1,0 +1,87 @@
+<!-- Team Management Section -->
+<div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <!-- Team Management Header -->
+        <div th:replace="~{admin/fragments/team-management-header}"></div>
+        
+        <!-- Search Section -->
+        <div class="mb-4">
+            <div class="flex gap-x-4">
+                <input type="text" id="teamSearchInput" 
+                       class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                       placeholder="Search teams by name...">
+                <button onclick="searchTeams()" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Search
+                </button>
+                <button onclick="clearTeamSearch()" 
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Clear
+                </button>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortTeams('name')">
+                                Team Name
+                                <span id="teamNameSort" class="ml-1">↕</span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teamTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr th:each="team : ${allTeams}">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" th:text="${team.name}"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${team.members.size() + ' members'}"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="flex space-x-2">
+                                    <button onclick="editTeam(event)" th:data-team-id="${team.id}" 
+                                            class="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50" 
+                                            title="Edit Team">
+                                        <span class="material-icons text-lg">edit</span>
+                                    </button>
+                                    <button onclick="deleteTeam(event)" th:data-team-id="${team.id}" th:data-team-name="${team.name}"
+                                            class="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50" 
+                                            title="Delete Team">
+                                        <span class="material-icons text-lg">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination Controls -->
+            <div class="mt-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <label for="teamPageSize" class="text-sm text-gray-700">Show:</label>
+                    <select id="teamPageSize" onchange="changeTeamPageSize()" class="border border-gray-300 rounded-md px-2 py-1 text-sm">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="text-sm text-gray-700">entries</span>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <button id="teamPrevPage" onclick="previousTeamPage()" 
+                            class="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <span class="material-icons">chevron_left</span>
+                    </button>
+                    <span id="teamPageInfo" class="text-sm text-gray-700">Page 1 of 1</span>
+                    <button id="teamNextPage" onclick="nextTeamPage()" 
+                            class="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
