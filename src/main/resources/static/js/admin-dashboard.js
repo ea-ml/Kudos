@@ -35,28 +35,26 @@ window.hideEditTeamModal = function() {
     window.dispatchEvent(new CustomEvent('hide-edit-team-modal'));
 };
 
-// Helper for confirm dialog using toastr
-function toastrConfirm(message, onConfirm) {
-    toastr.info(
-        `<div>${message}</div><br><button type='button' id='toastr-confirm-btn' class='toastr-confirm-btn'>Yes</button> <button type='button' id='toastr-cancel-btn' class='toastr-cancel-btn'>No</button>`,
-        '',
-        {
-            timeOut: 0,
-            extendedTimeOut: 0,
-            closeButton: false,
-            tapToDismiss: false,
-            allowHtml: true,
-            onShown: function() {
-                document.getElementById('toastr-confirm-btn').onclick = function() {
-                    toastr.clear();
-                    onConfirm();
-                };
-                document.getElementById('toastr-cancel-btn').onclick = function() {
-                    toastr.clear();
-                };
-            }
+// Helper for confirm dialog using SweetAlert2
+function sweetConfirm(message, onConfirm) {
+    if (typeof Swal === 'undefined') {
+        alert('SweetAlert2 is not loaded!');
+        return;
+    }
+    Swal.fire({
+        title: 'Are you sure?',
+        text: message,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            onConfirm();
         }
-    );
+    });
 }
 
 function editEmployee(event) {
@@ -79,7 +77,7 @@ function editEmployee(event) {
 
 function deleteEmployee(event) {
     const employeeId = event.target.dataset.employeeId;
-    toastrConfirm('Are you sure you want to delete this employee?', () => {
+    sweetConfirm('Are you sure you want to delete this employee?', () => {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/admin/employees/${employeeId}/delete`;
@@ -97,7 +95,7 @@ function deleteEmployee(event) {
 window.resetKudos = function(event) {
     const employeeId = event.target.dataset.employeeId;
     const employeeName = event.target.dataset.employeeName;
-    toastrConfirm(`Are you sure you want to reset all active kudos for ${employeeName}?`, () => {
+    sweetConfirm(`Are you sure you want to reset all active kudos for ${employeeName}?`, () => {
         fetch(`/admin/employees/${employeeId}/reset-kudos`, {
             method: 'PUT',
             headers: {
@@ -145,7 +143,7 @@ function editTeam(event) {
 function deleteTeam(event) {
     const teamId = event.target.dataset.teamId;
     const teamName = event.target.dataset.teamName;
-    toastrConfirm(`Are you sure you want to delete the team '${teamName}'?`, () => {
+    sweetConfirm(`Are you sure you want to delete the team '${teamName}'?`, () => {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/admin/teams/${teamId}/delete`;
@@ -610,18 +608,33 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(async res => {
                 if (!res.ok) {
-                    const text = await res.text();
-                    // Try to parse error field from backend message
-                    if (text.includes('Employee ID')) {
-                        document.getElementById('addEmployeeIdError').textContent = text;
-                    } else if (text.includes('Email')) {
-                        document.getElementById('addEmailError').textContent = text;
-                    } else if (text.includes('Name')) {
-                        document.getElementById('addNameError').textContent = text;
-                    } else {
-                        toastr.error('Failed to add employee: ' + text);
+                    let errorObj = null;
+                    try {
+                        errorObj = await res.json();
+                    } catch (e) {
+                        // fallback to text
                     }
-                    throw new Error(text);
+                    if (errorObj && typeof errorObj === 'object') {
+                        if (errorObj.employeeId) document.getElementById('addEmployeeIdError').textContent = errorObj.employeeId;
+                        if (errorObj.name) document.getElementById('addNameError').textContent = errorObj.name;
+                        if (errorObj.email) document.getElementById('addEmailError').textContent = errorObj.email;
+                        if (!errorObj.employeeId && !errorObj.name && !errorObj.email) {
+                            toastr.error('Failed to add employee: ' + JSON.stringify(errorObj));
+                        }
+                    } else {
+                        const text1 = await res.text();
+                        // Try to parse error field from backend message
+                        if (text1.includes('Employee ID')) {
+                            document.getElementById('addEmployeeIdError').textContent = text1;
+                        } else if (text1.includes('Email')) {
+                            document.getElementById('addEmailError').textContent = text1;
+                        } else if (text1.includes('Name')) {
+                            document.getElementById('addNameError').textContent = text1;
+                        } else {
+                            toastr.error('Failed to add employee: ' + text1);
+                        }
+                        throw new Error('Validation error');
+                    }
                 }
                 return res.json();
             })
@@ -659,17 +672,32 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(async res => {
                 if (!res.ok) {
-                    const text = await res.text();
-                    if (text.includes('Employee ID')) {
-                        document.getElementById('editEmployeeIdError').textContent = text;
-                    } else if (text.includes('Email')) {
-                        document.getElementById('editEmailError').textContent = text;
-                    } else if (text.includes('Name')) {
-                        document.getElementById('editNameError').textContent = text;
-                    } else {
-                        toastr.error('Failed to update employee: ' + text);
+                    let errorObj = null;
+                    try {
+                        errorObj = await res.json();
+                    } catch (e) {
+                        // fallback to text
                     }
-                    throw new Error(text);
+                    if (errorObj && typeof errorObj === 'object') {
+                        if (errorObj.employeeId) document.getElementById('editEmployeeIdError').textContent = errorObj.employeeId;
+                        if (errorObj.name) document.getElementById('editNameError').textContent = errorObj.name;
+                        if (errorObj.email) document.getElementById('editEmailError').textContent = errorObj.email;
+                        if (!errorObj.employeeId && !errorObj.name && !errorObj.email) {
+                            toastr.error('Failed to update employee: ' + JSON.stringify(errorObj));
+                        }
+                    } else {
+                        const text1 = await res.text();
+                        if (text1.includes('Employee ID')) {
+                            document.getElementById('editEmployeeIdError').textContent = text1;
+                        } else if (text1.includes('Email')) {
+                            document.getElementById('editEmailError').textContent = text1;
+                        } else if (text1.includes('Name')) {
+                            document.getElementById('editNameError').textContent = text1;
+                        } else {
+                            toastr.error('Failed to update employee: ' + text1);
+                        }
+                        throw new Error('Validation error');
+                    }
                 }
                 return res.json();
             })
@@ -686,6 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addTeamForm) {
         addTeamForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            document.getElementById('teamNameError').textContent = '';
             const name = document.getElementById('teamName').value;
             // Gather memberIds from window.selectedMembers
             const memberIds = (window.selectedMembers || []).map(m => m.id);
@@ -700,8 +729,18 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(async res => {
                 if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text);
+                    let errorObj = null;
+                    try {
+                        errorObj = await res.json();
+                    } catch (e) {}
+                    if (errorObj && typeof errorObj === 'object') {
+                        if (errorObj.name) document.getElementById('teamNameError').textContent = errorObj.name;
+                        if (!errorObj.name) toastr.error('Failed to create team: ' + JSON.stringify(errorObj));
+                    } else {
+                        const text1 = await res.text();
+                        toastr.error('Failed to create team: ' + text1);
+                    }
+                    throw new Error('Validation error');
                 }
                 return res.json();
             })
@@ -719,6 +758,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (editTeamForm) {
         editTeamForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            document.getElementById('editTeamNameError').textContent = '';
             const teamId = document.getElementById('editTeamIdHidden').value;
             const name = document.getElementById('editTeamName').value;
             const memberIds = (window.editSelectedMembers || []).map(m => m.id);
@@ -733,8 +773,18 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(async res => {
                 if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text);
+                    let errorObj = null;
+                    try {
+                        errorObj = await res.json();
+                    } catch (e) {}
+                    if (errorObj && typeof errorObj === 'object') {
+                        if (errorObj.name) document.getElementById('editTeamNameError').textContent = errorObj.name;
+                        if (!errorObj.name) toastr.error('Failed to update team: ' + JSON.stringify(errorObj));
+                    } else {
+                        const text1 = await res.text();
+                        toastr.error('Failed to update team: ' + text1);
+                    }
+                    throw new Error('Validation error');
                 }
                 return res.json();
             })
@@ -780,7 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Refactor deleteEmployee to use AJAX
     window.deleteEmployee = function(event) {
         const employeeId = event.target.dataset.employeeId;
-        toastrConfirm('Are you sure you want to delete this employee?', () => {
+        sweetConfirm('Are you sure you want to delete this employee?', () => {
             fetch(`/admin/employees/${employeeId}`, {
                 method: 'DELETE',
                 headers: {
@@ -789,8 +839,8 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(async res => {
                 if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text);
+                    const text1 = await res.text();
+                    throw new Error(text1);
                 }
                 sessionStorage.setItem('toastrMessage', 'Employee deleted successfully!');
                 window.location.reload();
@@ -803,10 +853,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Refactor deleteTeam to use AJAX
     window.deleteTeam = function(event) {
-        const button = event.target.closest('button');
+        const button = event.target;
         const teamId = button.dataset.teamId;
         const teamName = button.dataset.teamName;
-        toastrConfirm(`Are you sure you want to delete the team '${teamName}'?`, () => {
+        sweetConfirm(`Are you sure you want to delete the team '${teamName}'?`, () => {
             fetch(`/admin/teams/${teamId}`, {
                 method: 'DELETE',
                 headers: {
@@ -815,8 +865,8 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(async res => {
                 if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text);
+                    const text1 = await res.text();
+                    throw new Error(text1);
                 }
                 sessionStorage.setItem('toastrMessage', 'Team deleted successfully!');
                 window.location.reload();

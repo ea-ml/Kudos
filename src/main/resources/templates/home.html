@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen">
@@ -100,6 +101,26 @@
                         <div class="mt-4 flex justify-center">
                             <a href="/teams/ranking" class="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-medium">See More</a>
                         </div>
+                    </div>
+                </div>
+                <!-- Public Kudos Section -->
+                <div class="bg-white p-6 rounded-lg shadow-md mt-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Recent Kudos</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipient</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="publicKudosTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                        <div id="publicKudosPagination" class="mt-4 flex justify-between items-center"></div>
                     </div>
                 </div>
             </div>
@@ -209,7 +230,54 @@
         filter.addEventListener('change', function() {
             fetchAndRenderTopEmployees(filter.value);
         });
+        loadPublicKudosPage(0, 10);
     });
+    function renderPublicKudosTable(kudosPage) {
+        const tbody = document.getElementById('publicKudosTableBody');
+        tbody.innerHTML = '';
+        if (!kudosPage || !kudosPage.content || kudosPage.content.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No kudos found.</td></tr>';
+            return;
+        }
+        kudosPage.content.forEach(kudos => {
+            const senderDisplay = kudos.senderName || '';
+            const recipientDisplay = kudos.recipientName || '';
+            const date = new Date(kudos.createdAt);
+            const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${kudos.message}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${senderDisplay}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${recipientDisplay}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${dateStr}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    function renderPublicKudosPagination(kudosPage, currentPage, pageSize) {
+        const container = document.getElementById('publicKudosPagination');
+        if (!kudosPage || kudosPage.totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+        let html = '';
+        html += `<button ${kudosPage.first ? 'disabled' : ''} class="px-4 py-2 bg-indigo-600 text-white rounded-md flex items-center justify-center disabled:bg-gray-400 hover:bg-indigo-700 transition duration-300" onclick="loadPublicKudosPage(${currentPage - 1}, ${pageSize})">
+            <span class="material-icons">chevron_left</span>
+        </button>`;
+        html += `<span class="text-gray-700">Page ${currentPage + 1} of ${kudosPage.totalPages}</span>`;
+        html += `<button ${kudosPage.last ? 'disabled' : ''} class="px-4 py-2 bg-indigo-600 text-white rounded-md flex items-center justify-center disabled:bg-gray-400 hover:bg-indigo-700 transition duration-300" onclick="loadPublicKudosPage(${currentPage + 1}, ${pageSize})">
+            <span class="material-icons">chevron_right</span>
+        </button>`;
+        container.innerHTML = html;
+    }
+    function loadPublicKudosPage(page = 0, size = 10) {
+        fetch(`/kudos/paginated?page=${page}&size=${size}`)
+            .then(res => res.json())
+            .then(data => {
+                renderPublicKudosTable(data);
+                renderPublicKudosPagination(data, page, size);
+            });
+    }
     </script>
 </body>
 </html> 

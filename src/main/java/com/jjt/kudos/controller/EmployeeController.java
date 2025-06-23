@@ -1,5 +1,7 @@
 package com.jjt.kudos.controller;
 
+import com.jjt.kudos.entity.Team;
+import com.jjt.kudos.entity.Employee;
 import com.jjt.kudos.dto.EmployeeDTO;
 import com.jjt.kudos.dto.TeamDTO;
 import com.jjt.kudos.dto.TopEmployeeDTO;
@@ -24,6 +26,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import java.util.Comparator;
+import org.springframework.data.domain.Sort;
+import com.jjt.kudos.entity.Kudos;
+import com.jjt.kudos.dto.KudosDTO;
 
 @Controller
 public class EmployeeController {
@@ -122,5 +127,36 @@ public class EmployeeController {
                 .toList();
         }
         return all;
+    }
+
+    @GetMapping("/kudos/paginated")
+    @ResponseBody
+    public Page<KudosDTO> getPublicKudosPaginated(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<Kudos> kudosPage = kudosService.getAllKudos(PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        return kudosPage.map(k -> {
+            String senderName = k.isAnonymous() ? "Anonymous" : (k.getSender() != null ? k.getSender().getName() : "");
+            String recipientName = "";
+            if (k.getRecipient() != null) {
+                if (k.getRecipient() instanceof Employee emp) {
+                    recipientName = emp.getName();
+                } else if (k.getRecipient() instanceof Team team) {
+                    recipientName = team.getName();
+                }
+            }
+            return new KudosDTO(
+                k.getId(),
+                k.getSender() != null ? k.getSender().getId() : null,
+                k.getRecipient() != null ? k.getRecipient().getId() : null,
+                k.getMessage(),
+                k.isActive(),
+                k.isAnonymous(),
+                k.getCreatedAt(),
+                senderName,
+                recipientName
+            );
+        });
     }
 } 
