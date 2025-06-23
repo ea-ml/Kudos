@@ -139,4 +139,13 @@ public class TeamServiceImpl implements TeamService {
         }
         return teamPage.map(TeamDTO::new);
     }
+
+    @Override
+    public List<Team> searchTeams(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return teamRepository.findAll();
+        }
+        // Use a custom query for searching teams by name
+        return teamRepository.searchTeamsByName(query.trim());
+    }
 } 

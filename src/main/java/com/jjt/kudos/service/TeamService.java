@@ -22,4 +22,5 @@ public interface TeamService {
     Team findByName(String name);
     TeamDTO updateTeam(Long id, TeamDTO teamDTO);
     Page<TeamDTO> getTeams(String search, Pageable pageable);
+    List<Team> searchTeams(String query);
 } 

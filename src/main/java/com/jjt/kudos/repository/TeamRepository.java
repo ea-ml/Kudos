@@ -29,4 +29,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     boolean existsByName(String name);
     
     Optional<Team> findByName(String name);
+
+    @Query("SELECT t FROM Team t WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :query, '%')) ORDER BY t.name")
+    List<Team> searchTeamsByName(@Param("query") String query);
 } 

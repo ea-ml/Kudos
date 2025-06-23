@@ -77,8 +77,8 @@ public class EmployeeController {
     @GetMapping("/search/entities")
     @ResponseBody
     public Map<String, List<Map<String, Object>>> searchEntities(@RequestParam String query) {
-        List<Map<String, Object>> employees = employeeService.getAllEmployees().stream()
-            .filter(e -> e.getName().toLowerCase().contains(query.toLowerCase()) || (e.getEmployeeId() != null && e.getEmployeeId().toLowerCase().contains(query.toLowerCase())))
+        List<Employee> employees = employeeService.searchEmployees(query);
+        List<Map<String, Object>> employeeResults = employees.stream()
             .map(e -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", e.getId());
@@ -86,8 +86,9 @@ public class EmployeeController {
                 return map;
             })
             .toList();
-        List<Map<String, Object>> teams = teamService.getAllTeams().stream()
-            .filter(t -> t.getName().toLowerCase().contains(query.toLowerCase()))
+
+        List<Team> teams = teamService.searchTeams(query);
+        List<Map<String, Object>> teamResults = teams.stream()
             .map(t -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", t.getId());
@@ -95,9 +96,10 @@ public class EmployeeController {
                 return map;
             })
             .toList();
+
         HashMap<String, List<Map<String, Object>>> result = new HashMap<>();
-        result.put("employees", employees);
-        result.put("teams", teams);
+        result.put("employees", employeeResults);
+        result.put("teams", teamResults);
         return result;
     }
 
