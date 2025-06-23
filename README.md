@@ -50,13 +50,3 @@ In another terminal, start the Spring Boot backend:
 The app will be available at [http://localhost:8080](http://localhost:8080).
 
 ---
-
-## Troubleshooting
-- Ensure your database is running and accessible.
-- If you change the DB type, update the JDBC URL and driver in `application.properties`.
-- For frontend issues, ensure Node.js and npm are installed and up to date.
-
----
-
-## License
-MIT (or your license here) 
