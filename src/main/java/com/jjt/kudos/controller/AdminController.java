@@ -36,6 +36,11 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.HashMap;
+import com.jjt.kudos.service.FileuploadLogService;
+import com.jjt.kudos.entity.User;
+import com.jjt.kudos.repository.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Controller
 @RequestMapping("/admin")
@@ -52,6 +57,12 @@ public class AdminController {
 
     @Autowired
     private TeamService teamService;
+
+    @Autowired
+    private FileuploadLogService fileuploadLogService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/login")
     public String login() {
@@ -246,17 +257,35 @@ public class AdminController {
 
     @PostMapping("/csv-upload")
     public String handleCsvUpload(@RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) {
+        // Get uploaderId from authenticated user
+        Long uploaderId = null;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            User user = userRepository.findByUsernameOrEmail(username, username).orElse(null);
+            if (user != null) {
+                uploaderId = user.getId();
+            }
+        } catch (Exception ignored) {}
+
+        if (uploaderId == null) {
+            redirectAttributes.addFlashAttribute("error", "No authenticated user found. Please log in and try again.");
+            return "redirect:/admin/csv-upload";
+        }
+
         if (file.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please select a CSV file to upload.");
+            fileuploadLogService.logUpload(uploaderId, "FAILURE", "No file selected", 0);
             return "redirect:/admin/csv-upload";
         }
 
         try {
             int count = employeeService.importEmployeesFromCsv(file);
             redirectAttributes.addFlashAttribute("success", count + " employees uploaded successfully.");
-
+            fileuploadLogService.logUpload(uploaderId, "SUCCESS", null, count);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "An error occurred while processing the CSV file. " + e.getMessage());
+            fileuploadLogService.logUpload(uploaderId, "FAILURE", e.getMessage(), 0);
         }
 
         return "redirect:/admin/csv-upload";
