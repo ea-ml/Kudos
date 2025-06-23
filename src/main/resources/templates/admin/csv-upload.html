@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Upload - Admin</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div th:replace="~{admin/fragments/navigation}"></div>
+    <div class="mx-10 py-10 relative">
+        <h1 class="text-2xl font-bold mb-6">Upload Employees via CSV</h1>
+        <form id="csv-upload-form" enctype="multipart/form-data" method="post" th:action="@{/admin/csv-upload}" class="bg-white p-6 rounded shadow" xmlns:th="http://www.thymeleaf.org">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <div class="mb-4">
+                <p class="text-gray-600 mb-2">
+                    Download the template file to see the required format.
+                    <a href="/downloads/CSV.csv" download="CSV.csv" class="text-indigo-600 hover:underline">Download Template</a>
+                </p>
+                <label class="block text-gray-700 font-bold mb-2" for="csvFile">CSV File</label>
+                <input class="border rounded w-full py-2 px-3" type="file" id="csvFile" name="file" accept=".csv" required />
+            </div>
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Upload</button>
+        </form>
+    </div>
+
+    <script th:inline="javascript">
+        $(function() {
+            toastr.options = {
+                "positionClass": "toast-top-right",
+                "preventDuplicates": true,
+            };
+
+            var successMessage = /*[[${success}]]*/ null;
+            if (successMessage) {
+                toastr.success(successMessage);
+            }
+
+            var errorMessage = /*[[${error}]]*/ null;
+            if (errorMessage) {
+                toastr.error(errorMessage);
+            }
+
+            function renderPreview() {
+                const fileInput = $('#csvFile')[0];
+                const $previewDiv = $('#csv-preview');
+                $previewDiv.html('');
+
+                if (fileInput.files.length === 0) {
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                if (!file.type.match('text/csv')) {
+                    toastr.error("Please select a valid CSV file");
+                    return;
+                }
+
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (!results.data.length || !results.meta.fields.length) {
+                            toastr.error("CSV is empty or invalid");
+                            return;
+                        }
+                        let table = '<table class="min-w-full bg-white"><thead><tr>';
+                        results.meta.fields.forEach(col => {
+                            table += `<th class='py-2 px-4 border-b'>${col}</th>`;
+                        });
+                        table += '</tr></thead><tbody>';
+                        results.data.forEach(row => {
+                            table += '<tr>';
+                            results.meta.fields.forEach(field => {
+                                table += `<td class='py-2 px-4 border-b'>${row[field] || ''}</td>`;
+                            });
+                            table += '</tr>';
+                        });
+                        table += '</tbody></table>';
+                        $previewDiv.html(table);
+                    }
+                });
+            }
+
+            $('#preview-btn').on('click', renderPreview);
+            $('#csvFile').on('change', renderPreview);
+        });
+    </script>
+</body>
+</html> 
