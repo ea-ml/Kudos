@@ -121,15 +121,7 @@ public class KudosServiceImpl implements KudosService {
         kudos.setAnonymous(kudosDTO.isAnonymous());
         Kudos saved = kudosRepository.save(kudos);
 
-        return new KudosDTO(
-                saved.getId(),
-                saved.getSender().getId(),
-                saved.getRecipient().getId(),
-                saved.getMessage(),
-                saved.isActive(),
-                saved.isAnonymous(),
-                saved.getCreatedAt()
-        );
+        return new KudosDTO(saved);
     }
 
     @Override

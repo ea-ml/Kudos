@@ -41,7 +41,7 @@ public class Employee extends Recipient {
     @JsonIgnore
     private Set<Team> teams = new HashSet<>();
 
-    @OneToMany(mappedBy = "sender")
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JsonIgnore
     private Set<Kudos> sentKudos = new HashSet<>();
 
@@ -64,6 +64,12 @@ public class Employee extends Recipient {
         if (team != null && teams.contains(team)) {
             teams.remove(team);
             // Let Hibernate manage the bidirectional relationship
+        }
+    }
+
+    public void removeFromAllTeams() {
+        for (Team team : new HashSet<>(teams)) {
+            team.removeMember(this);
         }
     }
 

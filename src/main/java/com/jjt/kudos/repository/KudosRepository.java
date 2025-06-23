@@ -4,6 +4,7 @@ import com.jjt.kudos.entity.Kudos;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -56,4 +57,8 @@ public interface KudosRepository extends JpaRepository<Kudos, Long> {
 
     @Query("SELECT COUNT(k) > 0 FROM Kudos k WHERE k.sender.id = :senderId AND k.recipient.id = :recipientId AND FUNCTION('DATE', k.createdAt) = FUNCTION('CURRENT_DATE')")
     boolean existsBySenderIdAndRecipientIdAndCreatedAtToday(@org.springframework.data.repository.query.Param("senderId") Long senderId, @org.springframework.data.repository.query.Param("recipientId") Long recipientId);
+
+    @Query("DELETE FROM Kudos k WHERE k.sender.id = :employeeId OR (k.recipient.id = :employeeId AND TYPE(k.recipient) = Employee)")
+    @Modifying
+    void deleteAllBySenderOrRecipient(@org.springframework.data.repository.query.Param("employeeId") Long employeeId);
 } 

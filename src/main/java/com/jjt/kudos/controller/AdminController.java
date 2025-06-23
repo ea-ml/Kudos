@@ -21,6 +21,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.HtmlUtils;
@@ -39,6 +41,7 @@ import java.util.HashMap;
 import com.jjt.kudos.service.FileuploadLogService;
 import com.jjt.kudos.entity.User;
 import com.jjt.kudos.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -160,7 +163,7 @@ public class AdminController {
 
     @PostMapping(value = "/employees", consumes = "application/json", produces = "application/json")
     @ResponseBody
-    public ResponseEntity addEmployeeRest(@RequestBody EmployeeDTO employeeDTO) {
+    public ResponseEntity<?> addEmployeeRest(@Valid @RequestBody EmployeeDTO employeeDTO) {
         try {
             EmployeeDTO created = employeeService.createEmployee(employeeDTO);
             return ResponseEntity.ok(created);
@@ -173,7 +176,7 @@ public class AdminController {
 
     @PutMapping(value = "/employees/{id}", consumes = "application/json", produces = "application/json")
     @ResponseBody
-    public ResponseEntity updateEmployeeRest(@PathVariable Long id, @RequestBody EmployeeDTO employeeDTO) {
+    public ResponseEntity<?> updateEmployeeRest(@PathVariable Long id, @Valid @RequestBody EmployeeDTO employeeDTO) {
         try {
             EmployeeDTO updatedEmployee = employeeService.updateEmployee(id, employeeDTO);
             return ResponseEntity.ok(updatedEmployee);
@@ -195,7 +198,7 @@ public class AdminController {
 
     @PostMapping(value = "/teams", consumes = "application/json", produces = "application/json")
     @ResponseBody
-    public ResponseEntity addTeamRest(@RequestBody TeamDTO teamDTO) {
+    public ResponseEntity addTeamRest(@Valid @RequestBody TeamDTO teamDTO) {
         try {
             TeamDTO created = teamService.createTeam(teamDTO);
             return ResponseEntity.ok(created);
@@ -208,7 +211,7 @@ public class AdminController {
 
     @PutMapping(value = "/teams/{id}", consumes = "application/json", produces = "application/json")
     @ResponseBody
-    public ResponseEntity updateTeamRest(@PathVariable Long id, @RequestBody TeamDTO teamDTO) {
+    public ResponseEntity updateTeamRest(@PathVariable Long id, @Valid @RequestBody TeamDTO teamDTO) {
         try {
             TeamDTO updatedTeam = teamService.updateTeam(id, teamDTO);
             return ResponseEntity.ok(updatedTeam);
@@ -289,5 +292,18 @@ public class AdminController {
         }
 
         return "redirect:/admin/csv-upload";
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseBody
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
     }
 } 

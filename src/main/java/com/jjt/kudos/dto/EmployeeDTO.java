@@ -2,11 +2,19 @@ package com.jjt.kudos.dto;
 
 import com.jjt.kudos.entity.Employee;
 import com.jjt.kudos.entity.Department;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 
 public class EmployeeDTO {
     private Long id;
+
+    @Pattern(regexp = "^[0-9 -]*$", message = "Employee ID must only contain numbers, spaces, and dashes")
     private String employeeId;
+
+    @Pattern(regexp = "^[a-zA-Z ]*$", message = "Name must only contain letters and spaces")
     private String name;
+
+    @Email(message = "Email should be a valid email address")
     private String email;
     private Long departmentId;
     private DepartmentDTO department;

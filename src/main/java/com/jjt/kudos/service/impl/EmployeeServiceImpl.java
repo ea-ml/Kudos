@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
 import org.springframework.util.StringUtils;
+import com.jjt.kudos.entity.Kudos;
+import com.jjt.kudos.repository.KudosRepository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -42,6 +44,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Autowired
     private TeamService teamService;
+
+    @Autowired
+    private KudosRepository kudosRepository;
 
     @Override
     public List<Employee> getAllEmployees() {
@@ -94,10 +99,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public void deleteEmployee(Long id) {
-        if (!employeeRepository.existsById(id)) {
-            throw new RuntimeException("Employee not found");
-        }
-        employeeRepository.deleteById(id);
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
+        employee.removeFromAllTeams();
+        kudosRepository.deleteAllBySenderOrRecipient(employee.getId());
+        employeeRepository.delete(employee);
     }
 
     @Override

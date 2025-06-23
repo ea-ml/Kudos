@@ -7,9 +7,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import jakarta.validation.constraints.Pattern;
 
 public class TeamDTO {
     private Long id;
+    @Pattern(regexp = "^[a-zA-Z0-9 -]*$", message = "Team name must only contain letters, numbers, spaces, and dashes")
     private String name;
     private List<EmployeeDTO> members;
     private List<Long> memberIds;
