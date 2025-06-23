@@ -169,60 +169,87 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public int importEmployeesFromCsv(MultipartFile file) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+        List<String[]> allRows = new java.util.ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
             String headerLine = reader.readLine();
             if (headerLine == null) {
                 throw new IllegalArgumentException("Invalid CSV found");
             }
-
             String line;
-            int count = 0;
             while ((line = reader.readLine()) != null) {
                 String[] values = line.split(",");
                 if (values.length < 5) continue;
+                allRows.add(values);
+            }
+        }
 
-                String email = values[0].trim();
-                String name = values[1].trim();
-                String employeeId = values[2].trim();
-                String departmentName = values[3].trim();
-                String teamNames = values[4].trim();
+        for (int i = 0; i < allRows.size(); i++) {
+            String[] values = allRows.get(i);
+            int rowNum = i + 1;
+            String email = values[0].trim();
+            String name = values[1].trim();
+            String employeeId = values[2].trim();
+            String departmentName = values[3].trim();
+            String teamNames = values[4].trim();
 
-                if( existsByEmail(email)) { 
-                    throw new IllegalArgumentException(email + " already exists");
-                }
-
-                if (existsByEmployeeId(employeeId)) {
-                    throw new IllegalArgumentException(employeeId + " already exists");
-                }
-
-                Department department = departmentService.findByName(departmentName);
-                if (department == null) {
-                    throw new IllegalArgumentException(departmentName + " not found");
-                }
-
-                EmployeeDTO dto = new EmployeeDTO();
-                dto.setEmail(email);
-                dto.setName(name);
-                dto.setEmployeeId(employeeId);
-                dto.setDepartment(new EmployeeDTO.DepartmentDTO(department));
-                EmployeeDTO created = createEmployee(dto);
-
-                if (!teamNames.isEmpty()) {
-                    String[] teamArr = teamNames.split("\\s*,\\s*");
-                    Employee employee = getEmployeeById(created.getId());
-                    for (String teamName : teamArr) {
-                        Team team = teamService.findByName(teamName);
-                        if (team == null) {
-                            throw new IllegalArgumentException(teamName + " not found");
-                        }
-                        team.getMembers().add(employee);
-                        teamService.saveTeam(team);
+            if (email.isEmpty() || name.isEmpty() || employeeId.isEmpty() || departmentName.isEmpty()) {
+                throw new IllegalArgumentException("Invalid input: missing required field at row " + rowNum);
+            }
+            if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                throw new IllegalArgumentException("Invalid email \"" + email + "\" format at row " + rowNum);
+            }
+            if (!employeeId.matches("^[0-9 -]*$")) {
+                throw new IllegalArgumentException("Invalid employee ID format at row " + rowNum);
+            }
+            if (!name.matches("^[a-zA-Z ]*$")) {
+                throw new IllegalArgumentException("Invalid name format at row " + rowNum);
+            }
+            if (existsByEmail(email)) {
+                throw new IllegalArgumentException("Email " + email + " already exists at row " + rowNum);
+            }
+            if (existsByEmployeeId(employeeId)) {
+                throw new IllegalArgumentException("Employee ID " + employeeId +" already exists at row " + rowNum);
+            }
+            Department department = departmentService.findByName(departmentName);
+            if (department == null) {
+                throw new IllegalArgumentException("Department " + departmentName + " not found at row " + rowNum);
+            }
+            if (!teamNames.isEmpty()) {
+                String[] teamArr = teamNames.split("\\s*,\\s*");
+                for (String teamName : teamArr) {
+                    if (teamService.findByName(teamName) == null) {
+                        throw new IllegalArgumentException("Team not found: " + teamName + " at row " + rowNum);
                     }
                 }
-                count++;
             }
-            return count;
         }
+        // If all rows are valid, create employees
+        int count = 0;
+        for (String[] values : allRows) {
+            String email = values[0].trim();
+            String name = values[1].trim();
+            String employeeId = values[2].trim();
+            String departmentName = values[3].trim();
+            String teamNames = values[4].trim();
+            Department department = departmentService.findByName(departmentName);
+            EmployeeDTO dto = new EmployeeDTO();
+            dto.setEmail(email);
+            dto.setName(name);
+            dto.setEmployeeId(employeeId);
+            dto.setDepartment(new EmployeeDTO.DepartmentDTO(department));
+            EmployeeDTO created = createEmployee(dto);
+            if (!teamNames.isEmpty()) {
+                String[] teamArr = teamNames.split("\\s*,\\s*");
+                Employee employee = getEmployeeById(created.getId());
+                for (String teamName : teamArr) {
+                    Team team = teamService.findByName(teamName);
+                    team.getMembers().add(employee);
+                    teamService.saveTeam(team);
+                }
+            }
+            count++;
+        }
+        return count;
     }
 
     @Override

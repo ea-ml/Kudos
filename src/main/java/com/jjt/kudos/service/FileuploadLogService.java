@@ -17,7 +17,7 @@ public class FileuploadLogService {
         log.setUploaderId(uploaderId);
         log.setStatus(status);
         log.setTimestamp(LocalDateTime.now());
-        log.setErrorMessage(errorMessage);
+        log.setErrorMessage(errorMessage.subSequence(0,  errorMessage.length() > 254 ? 254 :errorMessage.length() - 1).toString());
         log.setCreatedCount(createdCount);
         fileuploadLogRepository.save(log);
     }
